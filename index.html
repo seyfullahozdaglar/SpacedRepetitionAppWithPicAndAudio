@@ -146,6 +146,29 @@
         </div>
     </div>
 
+    <!-- Edit Word Modal -->
+<div id="editWordModal" class="note-modal">
+    <div class="note-modal-content">
+        <h3 id="editWordModalTitle">Edit Card</h3>
+
+        <div class="form-group">
+            <label for="editWordInput">Word:</label>
+            <input type="text" id="editWordInput" placeholder="Enter word">
+        </div>
+
+        <div class="form-group">
+            <label for="editMeaningInput">Meaning:</label>
+            <input type="text" id="editMeaningInput" placeholder="Enter meaning">
+        </div>
+
+        <div class="note-modal-actions">
+            <button id="cancelEditWordBtn">Cancel</button>
+            <button id="saveEditWordBtn" class="success">Save</button>
+        </div>
+    </div>
+</div>
+
+
     <!-- Side navigation (lists + create list) -->
     <div id="sideNav" class="side-nav" aria-hidden="true">
         <h2>Your Lists</h2>
@@ -251,6 +274,7 @@
 
                 <div class="card-actions" id="cardActions" style="display: none;">
                     <button id="markKnownBtn" class="success">Mark as Known</button>
+                    <button id="editWordBtn">Edit Word</button>            <!-- NEW -->
                     <button id="editNoteBtn">Add Note</button>
                     <button id="recordAudioBtn" class="icon-btn" title="Record pronunciation">🎙️ Record</button>
                     <button id="deleteCardBtn" class="danger">Delete Card</button>
@@ -379,6 +403,16 @@
         const noteModalTitle = document.getElementById('noteModalTitle');
         const saveNoteBtn = document.getElementById('saveNoteBtn');
         const cancelNoteBtn = document.getElementById('cancelNoteBtn');
+
+
+        // Edit word modal (add directly below the note modal refs)
+        const editWordModal = document.getElementById('editWordModal');
+        const editWordInput = document.getElementById('editWordInput');
+        const editMeaningInput = document.getElementById('editMeaningInput');
+        const editWordModalTitle = document.getElementById('editWordModalTitle');
+        const saveEditWordBtn = document.getElementById('saveEditWordBtn');
+        const cancelEditWordBtn = document.getElementById('cancelEditWordBtn');
+
 
         // Practice view elements for audio
         const playAudioBtn = document.getElementById('playAudioBtn');
@@ -760,6 +794,51 @@ function showPracticeCard() {
             }
         }
         function closeNoteModal() { noteModal.classList.remove('active'); noteInput.value = ''; }
+
+        function showEditWordModal() {
+    const card = currentSession.cards[currentSession.currentIndex];
+    if (!card) return;
+    editWordModalTitle.textContent = 'Edit Card';
+    editWordInput.value = card.word || '';
+    editMeaningInput.value = card.meaning || '';
+    editWordModal.classList.add('active');
+    editWordInput.focus();
+}
+
+function saveEditWord() {
+    const card = currentSession.cards[currentSession.currentIndex];
+    if (!card) return;
+    const newWord = editWordInput.value.trim();
+    const newMeaning = editMeaningInput.value.trim();
+    if (!newWord || !newMeaning) {
+        alert('Please enter both word and meaning');
+        return;
+    }
+    // update session card
+    card.word = newWord;
+    card.meaning = newMeaning;
+
+    // update global cards array and persist
+    const idx = cards.findIndex(c => c.id === card.id);
+    if (idx !== -1) {
+        cards[idx].word = newWord;
+        cards[idx].meaning = newMeaning;
+    }
+    saveCards();
+    closeEditWordModal();
+
+    // Refresh visible card and stats
+    showPracticeCard();
+    updateDashboard();
+}
+
+function closeEditWordModal() {
+    if (!editWordModal) return;
+    editWordModal.classList.remove('active');
+    editWordInput.value = '';
+    editMeaningInput.value = '';
+}
+
 
         // Statistics UI & helpers
         function showStatistics(filter = 'availableNow') {
@@ -1211,6 +1290,16 @@ function showPracticeCard() {
             saveNoteBtn.addEventListener('click', saveNote);
             cancelNoteBtn.addEventListener('click', closeNoteModal);
             noteModal.addEventListener('click', (e)=> { if (e.target === noteModal) closeNoteModal(); });
+            // Edit word modal listeners
+            const editWordBtn = document.getElementById('editWordBtn'); // button you added into cardActions
+            if (editWordBtn) editWordBtn.addEventListener('click', showEditWordModal);
+            if (saveEditWordBtn) saveEditWordBtn.addEventListener('click', saveEditWord);
+            if (cancelEditWordBtn) cancelEditWordBtn.addEventListener('click', closeEditWordModal);
+            // close modal when clicking outside
+            if (editWordModal) editWordModal.addEventListener('click', (e) => { if (e.target === editWordModal) closeEditWordModal(); });
+
+
+
             const nightBtn = document.getElementById('nightModeToggle'); if (nightBtn) nightBtn.addEventListener('click', toggleNightMode);
             if (burgerBtn) burgerBtn.addEventListener('click', (e)=> { e.stopPropagation(); toggleSideNav(); });
             if (overlay) overlay.addEventListener('click', ()=> closeSideNav());

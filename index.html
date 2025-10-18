@@ -245,6 +245,8 @@
 
                 <div id="noteDisplay" class="note-display" style="display: none;"></div>
 
+                <div id="firstTimeHint" class="note-display" style="display: none; font-weight:600;"></div>
+
                 <div class="options" id="optionsContainer"></div>
 
                 <div class="card-actions" id="cardActions" style="display: none;">
@@ -578,55 +580,76 @@
         }
 
         // Show practice card and update audio UI
-        function showPracticeCard() {
-            const { currentIndex, cards: sessionCards, direction } = currentSession;
-            const card = sessionCards[currentIndex];
-            if (!card) { endSession(); return; }
-            document.getElementById('progressText').textContent = `Question ${currentIndex + 1} of ${sessionCards.length}`;
-            const isWordToMeaning = direction === 'wordToMeaning';
-            document.getElementById('questionText').textContent = isWordToMeaning ? card.word : card.meaning;
+// Show practice card and update audio UI
+function showPracticeCard() {
+    const { currentIndex, cards: sessionCards, direction } = currentSession;
+    const card = sessionCards[currentIndex];
+    if (!card) { endSession(); return; }
+    document.getElementById('progressText').textContent = `Question ${currentIndex + 1} of ${sessionCards.length}`;
+    const isWordToMeaning = direction === 'wordToMeaning';
+    document.getElementById('questionText').textContent = isWordToMeaning ? card.word : card.meaning;
 
-            // note
-            const noteDisplay = document.getElementById('noteDisplay');
-            if (card.note && card.note.trim() !== '') { noteDisplay.textContent = card.note; noteDisplay.style.display = 'block'; }
-            else { noteDisplay.style.display = 'none'; }
-
-            const editNoteBtn = document.getElementById('editNoteBtn');
-            editNoteBtn.textContent = card.note && card.note.trim() !== '' ? 'Edit Note' : 'Add Note';
-
-            // options
-            const optionsContainer = document.getElementById('optionsContainer');
-            optionsContainer.innerHTML = '';
-            const correctAnswer = isWordToMeaning ? card.meaning : card.word;
-            const distractorCards = getDistractors(card, isWordToMeaning);
-            const optionCards = shuffleArray([card, ...distractorCards]);
-            optionCards.forEach(optionCard => {
-                const optionElement = document.createElement('div');
-                optionElement.className = 'option';
-                const optionValue = isWordToMeaning ? optionCard.meaning : optionCard.word;
-                optionElement.dataset.value = optionValue;
-                optionElement.tabIndex = 0;
-                if (optionCard.image && optionCard.image.trim() !== '') {
-                    const img = document.createElement('img');
-                    img.src = optionCard.image.trim();
-                    img.onerror = function(){ this.style.display = 'none'; };
-                    optionElement.appendChild(img);
-                }
-                const textSpan = document.createElement('div');
-                textSpan.className = 'opt-text';
-                textSpan.textContent = optionValue;
-                optionElement.appendChild(textSpan);
-                optionElement.addEventListener('click', ()=> checkAnswer(optionElement.dataset.value, correctAnswer));
-                optionElement.addEventListener('keydown', (e)=> { if (e.key==='Enter' || e.key===' ') { e.preventDefault(); optionElement.click(); }});
-                optionsContainer.appendChild(optionElement);
-            });
-
-            document.getElementById('cardActions').style.display = 'flex';
-            document.getElementById('feedback').style.display = 'none';
-
-            // Update audio UI: show/hide play button; set record button label
-            updateAudioUIForCard(card);
+    // --- first-time meaning hint (shown only in a 'learn' session) ---
+    const firstTimeHint = document.getElementById('firstTimeHint');
+    if (firstTimeHint) {
+        if (currentSession.type === 'learn') {
+            // show the meaning when the prompt is Word -> Meaning,
+            // or show the word when the prompt is Meaning -> Word
+            if (isWordToMeaning) {
+                firstTimeHint.textContent = `Meaning: ${card.meaning}`;
+                firstTimeHint.style.display = 'block';
+            } else {
+                firstTimeHint.textContent = `Word: ${card.word}`;
+                firstTimeHint.style.display = 'block';
+            }
+        } else {
+            firstTimeHint.style.display = 'none';
         }
+    }
+    // --- end first-time hint ---
+
+    // note
+    const noteDisplay = document.getElementById('noteDisplay');
+    if (card.note && card.note.trim() !== '') { noteDisplay.textContent = card.note; noteDisplay.style.display = 'block'; }
+    else { noteDisplay.style.display = 'none'; }
+
+    const editNoteBtn = document.getElementById('editNoteBtn');
+    editNoteBtn.textContent = card.note && card.note.trim() !== '' ? 'Edit Note' : 'Add Note';
+
+    // options
+    const optionsContainer = document.getElementById('optionsContainer');
+    optionsContainer.innerHTML = '';
+    const correctAnswer = isWordToMeaning ? card.meaning : card.word;
+    const distractorCards = getDistractors(card, isWordToMeaning);
+    const optionCards = shuffleArray([card, ...distractorCards]);
+    optionCards.forEach(optionCard => {
+        const optionElement = document.createElement('div');
+        optionElement.className = 'option';
+        const optionValue = isWordToMeaning ? optionCard.meaning : optionCard.word;
+        optionElement.dataset.value = optionValue;
+        optionElement.tabIndex = 0;
+        if (optionCard.image && optionCard.image.trim() !== '') {
+            const img = document.createElement('img');
+            img.src = optionCard.image.trim();
+            img.onerror = function(){ this.style.display = 'none'; };
+            optionElement.appendChild(img);
+        }
+        const textSpan = document.createElement('div');
+        textSpan.className = 'opt-text';
+        textSpan.textContent = optionValue;
+        optionElement.appendChild(textSpan);
+        optionElement.addEventListener('click', ()=> checkAnswer(optionElement.dataset.value, correctAnswer));
+        optionElement.addEventListener('keydown', (e)=> { if (e.key==='Enter' || e.key===' ') { e.preventDefault(); optionElement.click(); }});
+        optionsContainer.appendChild(optionElement);
+    });
+
+    document.getElementById('cardActions').style.display = 'flex';
+    document.getElementById('feedback').style.display = 'none';
+
+    // Update audio UI: show/hide play button; set record button label
+    updateAudioUIForCard(card);
+}
+
 
         function getDistractors(card, isWordToMeaning) {
             const otherCards = cards.filter(c => c.id !== card.id && c.listId === currentListId && !c.known);
